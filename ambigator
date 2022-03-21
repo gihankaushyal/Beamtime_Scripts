@@ -1,0 +1,19 @@
+#!/bin/sh
+
+INPUT=$1
+PG=6
+#PG2=622
+OPERATOR=-h-k,k,-l
+NAME=`basename "$INPUT" .stream`
+SLURMFILE="$NAME.sh"
+echo "#!/bin/sh" > $SLURMFILE
+echo >> $SLURMFILE
+echo "#source /path/to/crystfel/setup.sh" > $SLURMFILE
+echo >> $SLURMFILE
+command="$command ambigator $INPUT -o $NAME-ambi.stream -y $PG --operator=$OPERATOR -j 96"
+#-w $PG2
+#command="$command --max-adu=8000 --iterations=3 --model=unity"
+echo $command >> $SLURMFILE
+
+# Set your queue after "-q" below
+bsub -q psfehhiprioq -o ambi.out -e ambi.err -J $NAME-ambi -x sh $SLURMFILE

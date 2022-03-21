@@ -1,0 +1,121 @@
+#!/bin/sh
+
+# Split a large indexing job into many small tasks and submit using LSF
+
+# ./turbo-index my-files.lst label my.geom /location/for/streams
+
+# Copyright �� 2016-2020 Deutsches Elektronen-Synchrotron DESY,
+#                       a research centre of the Helmholtz Association.
+#
+# Authors:
+#   2016      Steve Aplin <steve.aplin@desy.de>
+#   2016-2017 Thomas White <taw@physics.org>
+
+SPLIT=10000  # Size of job chunks
+
+RUN=$1
+TAG=$2
+GEOM=$3
+
+#echo $1 $2 $3 $4
+
+#exit
+if [ ! -d $RUN ]; then
+   mkdir $RUN
+   cd $RUN
+   cp ../$GEOM .
+else
+   cd $RUN
+   cp ../$GEOM .
+fi
+
+RUN_STR=$(printf "%04d" $RUN)
+
+rm *.list
+find /bioxfel/data/2021/LCLS-2021-June-FrommeP18519/data/cheetah/hdf5/r$RUN_STR -name "*.cxi" >> $RUN.list
+#reg/d/psdm/mfx/mfxp17318/scratch/alexandra/cheetah/hdf5/ 
+# Set up environment here if necessary
+#source /path/to/crystfel/setup.sh
+
+# Generate event list from file above
+list_events -i $RUN.list -g $GEOM -o events-${TAG}.lst
+if [ $? != 0 ]; then
+       echo "list_events failed"
+       exit 1
+fi
+# If you are using single-event files instead of multi-event ("CXI") ones,
+# comment out the above lines and uncomment the following one:
+#cp $INPUT events-${TAG}.lst
+
+# Count total number of events
+wc -l events-${TAG}.lst
+
+# Split the events up, will create files with $SPLIT lines
+split -a 3 -d -l $SPLIT events-${TAG}.lst split-events-${TAG}.lst
+
+# Clean up
+rm -f events-${TAG}.lst
+
+# Loop over the event list files, and submit a batch job for each of them
+for FILE in split-events-${TAG}.lst*; do
+    # Stream file is the output of crystfel
+    STREAM=`echo $FILE | sed -e "s/split-events-${TAG}.lst/${TAG}.stream/"`
+
+    # Job name
+    NAME=`echo $FILE | sed -e "s/split-events-${TAG}.lst/${TAG}-/"`
+
+    # Job number
+    NUMBER=${NAME##$TAG-}
+    POS=`expr $NUMBER \* $SPLIT + 1`
+
+    echo "$NAME (serial start $POS): $FILE  --->  $STREAM"
+
+    SLURMFILE="${NAME}.sh"
+
+
+    echo "#!/bin/sh" > $SLURMFILE                                               
+    echo >> $SLURMFILE                                                          
+                                                                                
+                                                                                
+    echo "#SBATCH -p htc" >> $SLURMFILE  # Set your partition here              
+    echo "#SBATCJ -q normal" >> $SLURMFILE                                      
+    echo "#SBATCH -t 0-04:00:00" >> $SLURMFILE                                  
+    echo "#SBATCH --ntasks=20" >> $SLURMFILE                                    
+    # It may be polite to set the priority very low to allow other jobs through:
+    #echo "#SBATCH --nice=100" >> $SLURMFILE                                    
+    echo >> $SLURMFILE                                                          
+                                                                                
+    echo "#SBATCH --job-name=$NAME" >> $SLURMFILE                               
+    echo "#SBATCH --output=$NAME.out" >> $SLURMFILE                             
+    echo "#SBATCH --error=$NAME.err" >> $SLURMFILE                              
+    echo "#SBATCH --mail-type=END" >> $SLURMFILE                                
+    echo "#SBATCH --mail-user=Gihan.Ketawala@asu.edu" >> $SLURMFILE             
+    echo >> $SLURMFILE                                                          
+                                                                                
+    command="indexamajig -i $FILE -o $STREAM --serial-start=$POS"               
+    command="$command -j \`nproc\` -g $GEOM"                                    
+    command="$command --peaks=cxi --indexing=xgandalf,mosflm --multi --check-peaks" # indexing potions --check-peak 
+    command="$command --int-radius=2,4,6  "  # integration parameters : 
+                                                                                
+                                                                                
+    echo $command >> $SLURMFILE                                                 
+                                                                                
+    rm $NAME.out $NAME.err                                                      
+                                                                                
+    # Set your queue after "-q" below                                           
+    sbatch $SLURMFILE                                                           
+                                        
+
+
+
+
+
+done
+
+
+
+
+
+
+
+

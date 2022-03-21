@@ -1,0 +1,21 @@
+#!/bin/sh
+
+INPUT=$1
+NAME=`basename "$INPUT" .stream`
+SLURMFILE="$NAME.sh"
+echo "#!/bin/sh" > $SLURMFILE
+echo >> $SLURMFILE
+echo >> $SLURMFILE
+echo "#SBATCH -p fn3" >> $SLURMFILE
+echo "#SBATCH -t 36:00:00" >> $SLURMFILE
+echo "#SBATCH --exclusive" >> $SLURMFILE
+echo "#SBATCH --job-name ${NAME}" >> $SLURMFILE
+echo "#SBATCH --output ${NAME}-geo.out" >> $SLURMFILE
+echo "#SBATCH -N 1" >> $SLURMFILE
+echo "#SBATCH --ntasks=10" >> $SLURMFILE
+
+command="$command geoptimiser -c asics -q quadrants -m 8 -i $INPUT -g p185_v1-cpy.geom -o p185_v2.geom --no-cspad "
+echo $command >> $SLURMFILE
+
+# Set your queue after "-q" below
+sbatch $SLURMFILE

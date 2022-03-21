@@ -1,0 +1,18 @@
+#!/bin/bash
+ 
+n_indexed=$(grep "Cell parameters" $1 | wc -l)
+n_patterns=$(grep "Image filename" $1 | wc -l)
+
+#ip = percent indexed
+
+if [ $n_patterns -ne 0 ]; then
+ip_int=$(($n_indexed*100/$n_patterns))
+ip_flt=$(($n_indexed*10000/$n_patterns))
+ip=$((ip_flt - $ip_int*100))
+fi
+
+echo Stream file: $1
+echo "Indexed $n_indexed / $n_patterns  ($ip_int.$ip %) "
+echo
+
+

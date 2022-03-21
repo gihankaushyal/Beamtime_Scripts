@@ -1,0 +1,203 @@
+#!/bin/bash
+
+stream=""
+sym=""
+pdb=""
+lowres=""
+highres=""
+nshells=""
+merger=""
+tag=""
+extras=""
+
+if [ -z $1 ] ; then
+stream2stats -h
+exit 1
+fi
+
+while getopts ':hs:y:p:l:u:n:ct:m:x:' OPTION ; do
+  case $OPTION in
+    h)
+
+cat <<EOF
+Calculate indexing statistics from CrystFEL stream file.
+Will also create .hkl files if they don't already exist.
+
+Usage: stream2stats <[options]>
+
+Options:
+
+        -h      Print this help
+        -s      Stream (required)
+        -y      Symmetry (required)
+        -p      Unit cell file (.pdb, required)
+        -l      Low resolution cutoff in (d in A).
+        -u      High (Upper) resolution cutoff in (d in A).
+        -n      Use <n> resolution shells.
+        -c      Force calculation of hkl from stream (default: only if hkl doesn't exist)
+	-t	tag(optional) modifies the basename
+        -m      Merging program (process_hkl or partialator; default process_hkl)
+        -x      Extra options for process_hkl in quotes
+
+EOF
+
+        exit 1
+        ;;
+    s)
+        stream=$OPTARG
+        ;;
+    y)
+        sym=$OPTARG
+        ;;
+    p)
+        pdb=$OPTARG
+        ;;
+    l)
+        lowres=$OPTARG
+        ;;
+    u)
+        highres=$OPTARG
+        ;;
+    n)
+        nshells=$OPTARG
+        ;;
+    c)
+        calchkl="yes"
+        ;;
+    t)
+	tag=$OPTARG
+	;;
+    m)
+        merger=$OPTARG
+        ;;
+    x)
+        extras=$OPTARG
+        ;;
+    ?)
+        echo "Invalid Options"
+  esac
+done
+
+#if [ "$tag" != " " ];
+#then
+#	basename=${stream%.*}"-"${tag}
+#else
+#	basename=${stream%.*}
+#fi
+
+basename=${stream%.*}
+
+extraopts=""
+
+if [ "$lowres" != "" ];
+then
+        extraopts=${extraopts}" --lowres="${lowres}
+fi
+if [ "$highres" != "" ];
+then
+        extraopts=${extraopts}" --highres="${highres}
+fi
+if [ "$nshells" != "" ];
+then
+        extraopts=${extraopts}" --nshells="${nshells}
+fi
+
+if [ "$merger" == "" ];
+then
+        merger=process_hkl
+fi
+
+echo "extra options are: " ${extraopts} " " ${extras}
+#echo ${pdb} ${stream} ${sym} ${tag}
+#exit
+
+if [ -f log-lastmerge-${basename} ] ; then
+        head -n 1 log-lastmerge-${basename} > temporary-log-file
+        mv temporary-log-file log-lastmerge-${basename}
+fi
+
+#if [ -f "${basename}.hkl1" ] ; then
+#echo "Merging statistics have been recalculated with: " ${extraopts} >> log-lastmerge-${basename}
+#echo " " >> log-lastmerge-${basename}
+#fi
+
+#if [ ! -f "${basename}.hkl1" ] || [ "${calchkl}" == "yes" ];
+#	then
+#	if [ -f log-lastmerge-${basename} ] ; then rm log-lastmerge-${basename} ; fi
+
+#	(echo "HKL file calculated by: "${merger}" -i "${stream}"  -o " ${basename}".hkl -y" ${sym} " "  ${extraopts} " " ${extras} >> log-lastmerge-${basename} ) 2>&1 | tee -a log-lastmerge-${basename}
+#        if [[ $merger == *process_hkl* ]];
+#        	then
+#                echo "Using "$merger
+#		${merger} -i ${stream} -o ${basename}.hkl -y ${sym} ${extras}
+#                ${merger} -i ${stream} -o ${basename}.hkl1 -y ${sym} --even-only ${extras}
+#                ${merger} -i ${stream} -o ${basename}.hkl2 -y ${sym} --odd-only ${extras}
+#        else
+#                (${merger} -i ${stream} -o ${basename}.hkl -y ${sym} ${extras}  >> log-lastmerge-${basename} ) 2>&1 | tee -a log-lastmerge-${basename}
+#        fi
+#fi
+
+(check_hkl ${basename}.hkl -y ${sym} -p ${pdb} --shell-file=${basename}-check.dat ${extraopts} >> log-lastmerge-${basename} ) 2>&1 | tee -a log-lastmerge-${basename}
+(compare_hkl ${basename}.hkl[12] -y ${sym} -p ${pdb} --shell-file=${basename}-rsplit.dat --fom=rsplit ${extraopts}  >> log-lastmerge-${basename} ) 2>&1 | tee -a log-lastmerge-${basename}
+(compare_hkl ${basename}.hkl[12] -y ${sym} -p ${pdb} --shell-file=${basename}-cchalf.dat --fom=cc ${extraopts}  >> log-lastmerge-${basename} ) 2>&1 | tee -a log-lastmerge-${basename}
+(compare_hkl ${basename}.hkl[12] -y ${sym} -p ${pdb} --shell-file=${basename}-ccstar.dat --fom=ccstar ${extraopts}  >> log-lastmerge-${basename} ) 2>&1 | tee -a log-lastmerge-${basename}
+(echo " " >> log-lastmerge-${basename} )
+
+#(./howmany_indexed stream-all/${stream} ) 2>&1 | tee -a logfiles/log-lastmerge-${basename}
+(./ave-resolution ${stream}  ) 2>&1 | tee -a log-lastmerge-${basename}
+
+echo "#!/bin/python
+
+import os, argparse
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import style
+
+style.use('ggplot')
+#style.use('fivethirtyeight')
+
+
+
+
+parser = argparse.ArgumentParser(description=\"Create indexing stats figure\")
+parser.add_argument(\"-s\", metavar=\"FILE\", help=\"overall stats file\")
+parser.add_argument(\"-r\", metavar=\"FILE\", help=\"rsplit file\")
+parser.add_argument(\"-c\", metavar=\"FILE\", help=\"cchalf file\")
+parser.add_argument(\"-x\", metavar=\"FILE\", help=\"ccstar file\")
+args = parser.parse_args()
+
+completeness = np.nan_to_num(np.loadtxt(args.s, usecols=(9,3),skiprows=1))
+rsplit = np.nan_to_num(np.loadtxt(args.r, usecols=(3,1),skiprows=1))
+cchalf = np.nan_to_num(np.loadtxt(args.c, usecols=(3,1),skiprows=1))
+ccstar = np.nan_to_num(np.loadtxt(args.x, usecols=(3,1),skiprows=1))
+
+
+lowres = completeness[0,0]
+highres = completeness[-1,0]
+
+plt.plot(completeness[:,0],completeness[:,1]/100,label=\"Completeness\")
+plt.plot(rsplit[:,0],rsplit[:,1]/100,label=\"Rsplit\")
+plt.plot(cchalf[:,0],cchalf[:,1],label=\"CC 1/2\")
+plt.plot(ccstar[:,0],ccstar[:,1],label=\"CC*\")
+plt.plot([lowres,highres],[0.5,0.5],label=\"0.5\")
+
+plt.title(\"${basename}\")
+plt.xlabel(\"Resolution (A)\")
+leg = plt.legend(prop={\"size\":10},labelspacing=0.8,fancybox=True)
+leg.get_frame().set_alpha(0.5)
+plt.gca().invert_xaxis()
+plt.xlim([lowres,highres*.9])
+plt.ylim([0,1.1])
+plt.semilogx()
+xticks = np.arange(int(lowres),int(highres),-1)
+xticks[0] = lowres
+xticks[-1] = highres
+plt.xticks(xticks,xticks.astype(str))
+plt.savefig(\"${basename}_stats.png\")
+print(\"${basename}_stats.png\") " > stats.py
+
+python stats.py -s ${basename}-check.dat -r ${basename}-rsplit.dat -c ${basename}-cchalf.dat -x ${basename}-ccstar.dat
+
+
+
+
