@@ -7,6 +7,20 @@ NAME=`basename "$INPUT" .stream`
 SLURMFILE="$NAME.sh"
 echo "#!/bin/sh" > $SLURMFILE
 echo >> $SLURMFILE
+echo "#SBATCH -p htc" >> $SLURMFILE  # Set your partition here
+echo "#SBATCJ -q normal" >> $SLURMFILE
+echo "#SBATCH -t 0-04:00:00" >> $SLURMFILE                                
+echo "#SBATCH --ntasks=20" >> $SLURMFILE                                       
+# It may be polite to set the priority very low to allow other jobs through:
+#echo "#SBATCH --nice=100" >> $SLURMFILE                                    
+echo >> $SLURMFILE                                                          
+                                                                                
+echo "#SBATCH --job-name=$NAME" >> $SLURMFILE                              
+echo "#SBATCH --output=$NAME.out" >> $SLURMFILE                    
+echo "#SBATCH --error=$NAME.err" >> $SLURMFILE                    
+echo "#SBATCH --mail-type=END" >> $SLURMFILE                                
+echo "#SBATCH --mail-user=Gihan.Ketawala@asu.edu" >> $SLURMFILE                              
+echo >> $SLURMFILE 
 #echo "#source /reg/g/cfel/crystfel/crystfel-dev/bin/indexamajig" > $SLURMFILE
 echo >> $SLURMFILE
 command="$command partialator -i $INPUT -o $NAME.hkl -y $PG -j 16"
@@ -14,4 +28,4 @@ command="$command --max-adu=8000 --iterations=3 --model=unity --polarisation=ver
 echo $command >> $SLURMFILE
 
 # Set your queue after "-q" below
-bsub -q psfehprioq -o $NAME.out -e $NAME.err -J $NAME -x sh $SLURMFILE
+sbatch $SLURMFILE
