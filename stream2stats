@@ -144,7 +144,7 @@ fi
 (echo " " >> log-lastmerge-${basename} )
 
 #(./howmany_indexed stream-all/${stream} ) 2>&1 | tee -a logfiles/log-lastmerge-${basename}
-(./ave-resolution ${stream}  ) 2>&1 | tee -a log-lastmerge-${basename}
+#(./ave-resolution ${stream}  ) 2>&1 | tee -a log-lastmerge-${basename}
 
 echo "#!/bin/python
 
@@ -166,7 +166,7 @@ parser.add_argument(\"-c\", metavar=\"FILE\", help=\"cchalf file\")
 parser.add_argument(\"-x\", metavar=\"FILE\", help=\"ccstar file\")
 args = parser.parse_args()
 
-completeness = np.nan_to_num(np.loadtxt(args.s, usecols=(9,3),skiprows=1))
+completeness = np.nan_to_num(np.loadtxt(args.s, usecols=(8,3),skiprows=1))
 rsplit = np.nan_to_num(np.loadtxt(args.r, usecols=(3,1),skiprows=1))
 cchalf = np.nan_to_num(np.loadtxt(args.c, usecols=(3,1),skiprows=1))
 ccstar = np.nan_to_num(np.loadtxt(args.x, usecols=(3,1),skiprows=1))

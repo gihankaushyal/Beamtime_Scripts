@@ -1,0 +1,63 @@
+!*****************************************************************************
+! XDSCONV converts XDS-files to serve as input to a variety of
+! structure solution and refinement program packages.
+! It can produce files in the following format :
+!    CCP4     amplitudes and their anomalous differences for the CCP4 package
+!    CCP4_F   amplitudes {F,F(+),F(-)} for the CCP4 package
+!    CCP4_I   intensities {IMEAN,I(+),I(-)} for use by CCP4's 'truncate'
+!    CCP4_I+F all intensities and amplitudes for use by CCP4 
+!    CNS      structure factor amplitudes for the CNS (X-PLOR) package
+!    SHELX    intensities for use by the SHELX package
+!    XtalView structure factor amplitudes for use by XtalView
+! For details see chapter 'XDSVONV:Output formats' of the XDS documentation.
+!
+! The converted XDS reflection files may inherit test-reflections previously
+! used for calculation of the free R-factor by any of the packages.
+! If required, XDSCONV also converts intensities to structure factors.
+!
+! XDSCONV.INP contains named parameters and their values for running XDSCONV.
+! Characters in a line to the right of an exclamation mark are comment.
+! NOTE: Each input line has 80 characters. Parameters and values placed
+!       outside this range become invisible to XDSCONV.
+!
+!
+! EXAMPLE of XDSCONV.INP for converting MAD data sets to CNS input format
+! =======================================================================
+!
+!Assume that three data sets collected from a selenomethionyl protein
+!crystal at different wavelengths are available from a previous run of
+!the scaling program XSCALE (XSCALE output data sets fae-ip.ahkl,
+!fae-pk.ahkl, and fae-rm.ahkl; see example in the xscale documentation).
+!Each of the three intensity data sets is converted by a separate run
+!of XDSCONV into a structure factor data set in a format acceptable to
+!CNS. The input parameter values for XDSCONV.INP are shown below for
+!the conversion fae-ip.ahkl --> fae-ip.cv . In a similar way the other two
+!data sets, fae-pk.cv and fae-rm.cv, are obtained by running XDSCONV after
+!the appropriate changes to XDSCONV.INP have been made. The converted files
+!fae-ip.cv, fae-pk.cv, and fae-rm.cv may then be used directly for input to
+!CNS (CNS input file "merge.inp").
+!*****************************************************************************
+!name and format (optional) of XDS-file
+INPUT_FILE=fae-ip.ahkl !XDS_ASCII UNIQUE OLDHKL ANOMAL NORMAL
+
+!File-name and output format suitable for target software-package
+OUTPUT_FILE=fae-ip.cv  CNS !CCP4 CCP4_F CCP4_I CCP4_I+F SHELX XtalView
+
+!This creates new test-reflections from a fraction of the input reflections
+!GENERATE_FRACTION_OF_TEST_REFLECTIONS=0.05
+
+!If you want to keep old test-reflections (all or only a fraction of them)
+!INHERIT_TEST_REFLECTIONS_FROM_FILE=old.hkl SHELX
+!INHERIT_FRACTION_OF_TEST_REFLECTIONS=1.0 !Default is to keep them all (1.0)
+
+!Specify whether intensity data obey Wilson statistics or not. Optional.
+!WILSON_STATISTICS=FALSE !TRUE   !Default is TRUE
+
+!This omits reflections with I/sigma(I) below a specified cut-off
+!NEGATIVE_INTENSITY_CUTOFF=-3
+
+!SPACE_GROUP_NUMBER=19  !if omitted taken from header of input file
+!UNIT_CELL_CONSTANTS=65.46 108.41 113.15   90.000  90.000  90.000
+!FRIEDEL'S_LAW=FALSE !TRUE
+!INCLUDE_RESOLUTION_RANGE=20 1.6
+!MERGE=FALSE !TRUE

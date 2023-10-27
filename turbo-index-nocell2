@@ -11,14 +11,13 @@
 #   2016      Steve Aplin <steve.aplin@desy.de>
 #   2016-2017 Thomas White <taw@physics.org>
 
-SPLIT=5000  # Size of job chunks
+SPLIT=1000  # Size of job chunks
 #MAIL=gketawal@asu.edu  # Email address for SLURM notifications
 
 INPUT=$1
 RUN=$2
 GEOM=$3
 STREAMDIR=$4
-PDB=$5
 
 # Set up environment here if necessary
 #source /path/to/crystfel/setup.sh
@@ -40,21 +39,23 @@ PDB=$5
 #done < "$INPUT"
 
 #cat events-*.lst >> events-${RUN}.lst
+
 while true; do
-result=$(list_events -i "$INPUT" -g "$GEOM" -o "events-${RUN}.lst" 2>&1)        
-if [ $? != 0 ]; then                                                            
-    failed_line=$(echo "$result" | grep "Failed to read" | awk '{print $NF}')   
-    echo "-------------------------------"                                      
-    echo "  list_events failed for $failed_line"                                
-    sed -i "\#$failed_line#d" "$INPUT"                                          
-    rm "events-${RUN}.lst"                                                      
-    # break                                                                     
-    # echo "list_events failed"                                                 
-      # exit 1                                                                  
-else                                                                            
-    break                                                                       
-fi                                                                              
-done   #exit
+result=$(list_events -i "$INPUT" -g "$GEOM" -o "events-${RUN}.lst" 2>&1)
+if [ $? != 0 ]; then
+    failed_line=$(echo "$result" | grep "Failed to read" | awk '{print $NF}')
+    echo "-------------------------------"
+    echo "  list_events failed for $failed_line"
+    sed -i "\#$failed_line#d" "$INPUT"
+    rm "events-${RUN}.lst"
+    # break  
+    # echo "list_events failed"
+      # exit 1
+else
+    break
+fi
+done
+#exit
 
 # If you are using single-event files instead of multi-event ("CXI") ones,
 # comment out the above lines and uncomment the following one:
@@ -111,7 +112,7 @@ for FILE in split-events-${RUN}.lst*; do
     command="indexamajig -i $FILE -o $STREAMDIR/$STREAM --serial-start=$POS --no-non-hits-in-stream"
     command="$command -j \`nproc\` -g $GEOM"
     command="$command --peaks=peakfinder8 --threshold=100 --min-peaks=10 --min-snr=7 --min-pix-count=2 --max-pix-count=20 --local-bg-radius=3 --min-res=80 --max-res=1000 --peak-radius=3.0,5.0,7.0 "  # Peak Finding parameters here
-    command="$command --indexing=mosflm,mosflm-nolatt,mosflm-nocell,xgandalf,asdf,dirax -p $PDB --tolerance=20,20,20,5,5,5 --multi --check-peaks " # Indexing parameters here
+    command="$command --indexing=mosflm,xgandalf,asdf,dirax --multi --check-peaks " # Indexing parameters here
     command="$command --integration rings --int-radius=3.0,5.0,7.0" #Integration parameters here
 
     echo $command >> $SLURMFILE

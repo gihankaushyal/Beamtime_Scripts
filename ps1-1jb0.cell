@@ -1,0 +1,11 @@
+CrystFEL unit cell file version 1.0
+
+lattice_type = hexagonal
+unique_axis = c
+centering = P
+a = 281 A
+b = 281 A
+c = 165 A
+al = 90.00 deg
+be = 90.00 deg
+ga = 120.00 deg

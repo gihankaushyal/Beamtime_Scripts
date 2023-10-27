@@ -6,14 +6,28 @@ PG=6
 OPERATOR=-h-k,k,-l
 NAME=`basename "$INPUT" .stream`
 SLURMFILE="$NAME.sh"
-echo "#!/bin/sh" > $SLURMFILE
-echo >> $SLURMFILE
-echo "#source /path/to/crystfel/setup.sh" > $SLURMFILE
-echo >> $SLURMFILE
-command="$command ambigator $INPUT -o $NAME-ambi.stream -y $PG --operator=$OPERATOR -j 96"
+echo "#!/bin/sh" > $SLURMFILE                                                   
+echo >> $SLURMFILE                                                              
+echo >> $SLURMFILE                                                              
+echo "#SBATCH -p htc" >> $SLURMFILE                                             
+echo "#SBATCH -J $NAME" >> $SLURMFILE                                           
+echo "#SBATCH -o $NAME.out" >> $SLURMFILE                                       
+echo "#SBATCH -e $NAME.err" >> $SLURMFILE                                       
+echo "#SBATCH -t 0-04:00:00" >> $SLURMFILE                                      
+echo "#SBATCH -N 1" >> $SLURMFILE                                               
+echo "#SBATCH -n 20 " >> $SLURMFILE                                             
+    # It may be polite to set the priority very low to allow other jobs through:
+    #echo "#SBATCH --nice=100" >> $SLURMFILE                                    
+echo >> $SLURMFILE                                                              
+                                                                                
+echo "#SBATCH --mail-type=END" >> $SLURMFILE                                    
+echo "#SBATCH --mail-user=Gihan.Ketawala@asu.edu" >> $SLURMFILE                 
+echo >> $SLURMFILE   
+
+command="$command ambigator $INPUT -o $NAME-ambi.stream -y $PG --operator=$OPERATOR -j 20"
 #-w $PG2
 #command="$command --max-adu=8000 --iterations=3 --model=unity"
 echo $command >> $SLURMFILE
 
 # Set your queue after "-q" below
-bsub -q psfehhiprioq -o ambi.out -e ambi.err -J $NAME-ambi -x sh $SLURMFILE
+sbatch $SLURMFILE
