@@ -1,4 +1,4 @@
-#!/packages/apps/mamba/1.5.8/bin/python
+#!/usr/bin/env python3
 
 # Read and process the text file
 def extract_image_event(file_path, output_file):
