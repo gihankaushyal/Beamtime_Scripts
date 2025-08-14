@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 
 # Read and process the text file
 def extract_image_event(file_path, output_file):
@@ -23,7 +24,8 @@ def extract_image_event(file_path, output_file):
                     output.write(f"{image_filename} {event}\n")
     
     print(f"Filtered data written to {output_file}")
-
+if __name__ = "main":
+    
 # Replace 'input.txt' with your file path and 'output.txt' for the output
 extract_image_event('E5-all.stream', 'indexable_hits.list')
 
