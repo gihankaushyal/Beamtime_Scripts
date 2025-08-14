@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 import argparse
+import sys
 
 # Parseing args
 def parse_args():
-    p = argparse.ArgumentParser(description="Getting files to process")
+    p = argparse.ArgumentParser(description="Extract image/event pairs from a CrystFEL stream (text).")
     p.add_argument("-i", "--input", required=True, help="Input stream file path or '-' for stdin")
-    p.add_argument("-o", "--output", required=True,help="Output text file path or '-' for stdout")
-    p.add_argument("--delimiter", default=" ", help="Separator between filename and event in the output (default: space)." )
+    p.add_argument("-o", "--output", required=True, help="Output text file path or '-' for stdout")
+    p.add_argument("--delimiter", default=" ", help="Separator between filename and event in the output (default: space).")
     return p.parse_args()
 
 def open_in(path: str):
@@ -16,7 +17,7 @@ def open_out(path: str):
     return sys.stdout if path == "-" else open(path, "wt", encoding="utf-8", newline="")
 
 # Read and process the text file
-def extract_image_event(infile_file, output_file, delimiter: str = " ") -> None:
+def extract_image_event(in_file, out_file, delimiter: str = " ") -> None:
     """
     Stream the input file line-by-line and write:
         <image_filename><delimiter><event>
@@ -31,7 +32,7 @@ def extract_image_event(infile_file, output_file, delimiter: str = " ") -> None:
       ...
     """
     current_image: str | None = None
-    with open_in(infile_file) as f_in, open_out(output_file) as f_out:
+    with open_in(in_file) as f_in, open_out(out_file) as f_out:
         
         for raw in f_in:
             line = raw.strip()
